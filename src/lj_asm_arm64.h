@@ -1420,7 +1420,48 @@ static void asm_prof(ASMState *as, IRIns *ir)
 static void asm_stack_check(ASMState *as, BCReg topslot,
 			    IRIns *irp, RegSet allow, ExitNo exitno)
 {
-    lua_unimpl();
+  Reg pbase;
+  uint32_t k;
+  MCode *p;
+  if (irp) {
+    if (!ra_hasspill(irp->s)) {
+      pbase = irp->r;
+      lua_assert(ra_hasreg(pbase));
+    } else if (allow) {
+      pbase = rset_pickbot(allow);
+    } else {
+      pbase = RID_RET;
+      /* !!! TODO this uses 2 spill slots, is it ok? */
+      emit_lso(as, A64I_LDRx, RID_RET, RID_SP, 0);  /* Restore temp. register. */
+    }
+  } else {
+    pbase = RID_BASE;
+  }
+  p = as->mcp;
+  emit_branch(as, A64I_BL, exitstub_addr(as->J, exitno));
+  emit_cond_branch(as, CC_HI, p);
+
+  k = emit_isk12(0, (int32_t)(8*topslot));
+  lua_assert(k!=-1);
+
+  emit_n(as, A64I_CMPx^A64I_BINOPk^k, RID_TMP);
+  emit_dnm(as, A64I_SUBx, RID_TMP, RID_TMP, pbase);
+  emit_lso(as, A64I_LDRx, RID_TMP, RID_TMP,
+           (int32_t)offsetof(lua_State, maxstack));
+  if (irp) {  /* Must not spill arbitrary registers in head of side trace. */
+lua_unimpl();
+#if 0
+    int32_t i = i32ptr(&J2G(as->J)->cur_L);
+    if (ra_hasspill(irp->s))
+      emit_lso(as, ARMI_LDR, pbase, RID_SP, sps_scale(irp->s));
+    emit_lso(as, ARMI_LDR, RID_TMP, RID_TMP, (i & 4095));
+    if (ra_hasspill(irp->s) && !allow)
+      emit_lso(as, ARMI_STR, RID_RET, RID_SP, 0);  /* Save temp. register. */
+    emit_loadi(as, RID_TMP, (i & ~4095));
+#endif
+  } else {
+    emit_getgl(as, RID_TMP, cur_L);
+  }
 }
 
 /* Restore Lua stack from on-trace state. */
