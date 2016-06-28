@@ -1645,6 +1645,7 @@ static void asm_tail_fixup(ASMState *as, TraceNo lnk)
   } else {
     /* Patch stack adjustment. */
     uint32_t k = emit_isk12(A64I_ADDx, spadj);
+    lua_assert(k != -1);
     p[-2] = (A64I_ADDx^A64I_BINOPk^k) | A64F_D(RID_SP) | A64F_N(RID_SP);
   }
   /* Patch exit branch. */
