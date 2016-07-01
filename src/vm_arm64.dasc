@@ -207,6 +207,7 @@
 |//-----------------------------------------------------------------------
 |
 |// Macros to check the TValue type and extract the GCobj. Branch on failure.
+|.macro cleartp, reg; lsl reg, reg, #17; lsr reg, reg, #17; .endmacro
 |.macro checktp, reg, tp, target
 |  asr ITYPE, reg, #47
 |  cmn ITYPE, #-tp
@@ -1940,7 +1941,6 @@ static void build_subroutines(BuildCtx *ctx)
   |  // arm64: BASE, PC, L, GL need to be set. They are when coming from
   |  //        vm_exit_handler, but what about when entering here?
   |.if JIT
-  |  NYI
   |  ldr L, SAVE_L
   |1:
   |  cmp CARG1, #0
@@ -1954,6 +1954,7 @@ static void build_subroutines(BuildCtx *ctx)
   |   str RC, SAVE_MULTRES
   |   mov CARG3, #0
   |   str BASE, L->base
+  |  cleartp CARG2
   |  ldr CARG2, LFUNC:CARG2->field_pc
   |   str CARG3, [GL, #offsetof(global_State, jit_base)]
   |    mv_vmstate CARG4, INTERP
@@ -1975,6 +1976,7 @@ static void build_subroutines(BuildCtx *ctx)
   |   sub RC, RC, #8
   |   add RA, RA, BASE	// Yes: RA = BASE+framesize*8, RC = nargs*8
   |   ldr CARG3, [BASE, FRAME_FUNC]
+  |    cleartp CARG3
   |5:
   |  br RB
   |
