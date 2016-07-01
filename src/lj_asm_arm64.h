@@ -1474,7 +1474,7 @@ static void asm_stack_restore(ASMState *as, SnapShot *snap)
   for (n = 0; n < nent; n++) {
     SnapEntry sn = map[n];
     BCReg s = snap_slot(sn);
-    int32_t ofs = 8*((int32_t)s-1);
+    int32_t ofs = 8*((int32_t)s-1-LJ_FR2);
     IRRef ref = snap_ref(sn);
     IRIns *ir = IR(ref);
     if ((sn & SNAP_NORESTORE))
