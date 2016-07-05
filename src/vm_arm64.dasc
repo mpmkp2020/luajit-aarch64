@@ -1841,7 +1841,55 @@ static void build_subroutines(BuildCtx *ctx)
   |  br CRET1
   |
   |->cont_stitch:			// Trace stitching.
-  |  NYI
+  |.if JIT
+  |  // RA = resultptr, CARG4 = meta base
+  |   ldr RB, SAVE_MULTRES
+  |  ldr INSw, [PC, #-4]
+  |    ldr TRACE:CARG3, [CARG4, #-40]	// Save previous trace.
+  |    cleartp CARG3
+  |   subs RB, RB, #8
+  |  decode_RA RC, INS			// Call base.
+  |   beq >2
+  |1:  // Move results down.
+  |  ldr CARG1, [RA]
+  |    add RA, RA, #8
+  |   subs RB, RB, #8
+  |  str CARG1, [BASE, RC]
+  |    add RC, RC, #8
+  |   bne <1
+  |2:
+  |   decode_RA RA, INS
+  |   decode_RB RB, INS
+  |   add RA, RA, RB
+  |3:
+  |   cmp RA, RC
+  |  movn CARG2, #~LJ_TNIL
+  |   bhi >9				// More results wanted?
+  |
+  |  ldrh RAw, TRACE:CARG3->traceno
+  |  ldrh RCw, TRACE:CARG3->link
+  |  cmp RCw, RAw
+  |  beq ->cont_nop			// Blacklisted.
+  |  cmp RCw, #0
+  |  bne =>BC_JLOOP			// Jump to stitched trace.
+  |
+  |  // Stitch a new trace to the previous trace.
+  |  mov CARG1, #GL_J(exitno)
+  |  str RA, [GL, CARG1]
+  |  mov CARG1, #GL_J(L)
+  |  str L, [GL, CARG1]
+  |  str BASE, L->base
+  |  add CARG1, GL, #(GG_OFS(J) - GG_OFS(g))
+  |  mov CARG2, PC
+  |  bl extern lj_dispatch_stitch	// (jit_State *J, const BCIns *pc)
+  |  ldr BASE, L->base
+  |  b ->cont_nop
+  |
+  |9:  // Fill up results with nil.
+  |  str CARG2, [BASE, RC]
+  |  add RC, RC, #8
+  |  b <3
+  |.endif
   |
   |->vm_profhook:			// Dispatch target for profiler hook.
 #if LJ_HASPROFILE
