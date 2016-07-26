@@ -173,5 +173,5 @@ endef
 LUA_TEST_SRC=$(wildcard test/*.lua)
 ALL_LUA_TEST=$(LUA_TEST_SRC:test/%.lua=test_%)
 
-$(ALL_LUA_TEST) test: all
+$(ALL_LUA_TEST) test skipped: all
 	$(call RUN_LUA_TEST)

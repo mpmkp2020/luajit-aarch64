@@ -25,7 +25,21 @@ DISABLED_LUA_TEST:=$(ALL_SKIPPED_LUA_TEST:%=test_%)
 ENABLED_LUA_TEST=$(filter-out $(DISABLED_LUA_TEST),$(ALL_LUA_TEST))
 
 
-all test: $(ENABLED_LUA_TEST)
+test: $(ENABLED_LUA_TEST)
+
+skipped:
+	success= ; \
+	failed= ; \
+	for t in $(ALL_SKIPPED_LUA_TEST) ; do \
+	  echo "$(LUAJIT) $(LUA_FLAGS) $$t.lua" ; \
+	  if $(LUAJIT) $(LUA_FLAGS) $$t.lua ; then \
+	    success="$$success $$t" ; \
+	  else \
+	    failed="$$failed $$t" ; \
+	  fi \
+	done ; \
+	echo "SUCCESS : $$success" ; \
+	echo "FAILED : $$failed"
 
 $(ALL_LUA_TEST) : test_% : %.lua
 	@echo "Running test : $@"
