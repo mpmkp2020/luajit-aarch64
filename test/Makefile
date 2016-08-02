@@ -8,7 +8,7 @@ SKIPPED_LUA_TEST_x86_64=mul div
 SKIPPED_LUA_TEST_i686=mul div
 # Below features have not been implemented on aarch64.
 SKIPPED_LUA_TEST_aarch64=div callxs \
-  ustore uload snew cnew cnewi \
+  snew cnew cnewi \
   vload xstore_addvalue fstore xload \
   abs atan2 ldexp max min mod pow \
   eq_other ge_none_num gt_none_num \

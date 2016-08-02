@@ -13,6 +13,9 @@ static void emit_loadn(ASMState *as, Reg r, cTValue *tv)
 /* !!!TODO non-ARM ports are different */
 #define emit_canremat(ref)      ((ref) < ASMREF_L)
 
+#define glofs(as, k) \
+  ((intptr_t)((uintptr_t)(k) - (uintptr_t)&J2GG(as->J)->g))
+
 #define emit_getgl(as, r, field) \
   emit_lsptr(as, A64I_LDRx, (r), (void *)&J2G(as->J)->field)
 
@@ -124,14 +127,18 @@ static void emit_lso(ASMState *as, A64Ins ai, Reg rd, Reg rn, int32_t ofs)
 
 static void emit_lsptr(ASMState *as, A64Ins ai, Reg r, void *p)
 {
-  int64_t i = i64ptr(p);
-  Reg tmp = RID_TMP; /*!!!TODO allocate register? */
-  emit_lso(as, ai, r, tmp, 0);
-  /* emit_lso(as, ai, r, tmp, (i & 0xffff)); */
-  *--as->mcp = A64I_MOVK_48x | A64F_D(tmp) | A64F_U16((i>>48) & 0xffff);
-  *--as->mcp = A64I_MOVK_32x | A64F_D(tmp) | A64F_U16((i>>32) & 0xffff);
-  *--as->mcp = A64I_MOVK_16x | A64F_D(tmp) | A64F_U16((i>>16) & 0xffff);
-  *--as->mcp = A64I_MOVZx | A64F_D(tmp) | A64F_U16(i & 0xffff);
+  int64_t ofs = glofs(as, p);
+  if (checki32(ofs) && check_offset(ai, ofs)) {
+    emit_lso(as, ai, r, RID_GL, ofs);
+  } else {
+    int64_t i = i64ptr(p);
+    Reg tmp = RID_TMP; /*!!!TODO allocate register? */
+    emit_lso(as, ai, r, tmp, 0);
+    *--as->mcp = A64I_MOVK_48x | A64F_D(tmp) | A64F_U16((i>>48) & 0xffff);
+    *--as->mcp = A64I_MOVK_32x | A64F_D(tmp) | A64F_U16((i>>32) & 0xffff);
+    *--as->mcp = A64I_MOVK_16x | A64F_D(tmp) | A64F_U16((i>>16) & 0xffff);
+    *--as->mcp = A64I_MOVZx | A64F_D(tmp) | A64F_U16(i & 0xffff);
+  }
 }
 
 /* Load a 32 bit constant into a GPR. */

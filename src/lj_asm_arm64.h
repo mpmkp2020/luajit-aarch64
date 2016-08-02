@@ -179,12 +179,14 @@ static Reg asm_fuseahuref(ASMState *as, IRRef ref, int32_t *ofsp, RegSet allow,
         }
       }
     } else if (ir->o == IR_UREFC) {
-      lua_unimpl(); // x86 has LJ_GC64 changes here
       if (irref_isk(ir->op1)) {
-        GCfunc *fn = ir_kfunc(IR(ir->op1));
-        int32_t ofs = i32ptr(&gcref(fn->l.uvptr[(ir->op2 >> 8)])->uv.tv);
-        *ofsp = (ofs & 255);  /* Mask out less bits to allow LDRD. */
-        return ra_allock(as, (ofs & ~255), allow);
+	GCfunc *fn = ir_kfunc(IR(ir->op1));
+	GCupval *uv = &gcref(fn->l.uvptr[(ir->op2 >> 8)])->uv;
+	int64_t ofs = glofs(as, &uv->tv);
+	if (checki32(ofs) && check_offset(ins, ofs)) {
+	  *ofsp = (int32_t)ofs;
+	  return RID_GL;
+	}
       }
     }
   }
@@ -591,7 +593,26 @@ static void asm_hrefk(ASMState *as, IRIns *ir)
 
 static void asm_uref(ASMState *as, IRIns *ir)
 {
-    lua_unimpl();
+  Reg dest = ra_dest(as, ir, RSET_GPR);
+  if (irref_isk(ir->op1)) {
+    GCfunc *fn = ir_kfunc(IR(ir->op1));
+    MRef *v = &gcref(fn->l.uvptr[(ir->op2 >> 8)])->uv.v;
+    emit_lsptr(as, A64I_LDRx, dest, v);
+  } else {
+    Reg uv = ra_scratch(as, RSET_GPR);
+    Reg func = ra_alloc1(as, ir->op1, RSET_GPR);
+    if (ir->o == IR_UREFC) {
+      asm_guardcc(as, CC_NE);
+      emit_n(as, A64I_CMPx^A64I_BINOPk^(1 << 10), RID_TMP);
+      emit_opk(as, A64I_ADDx, dest, uv,
+	       (int32_t)offsetof(GCupval, tv), RSET_GPR);
+      emit_lso(as, A64I_LDRBw, RID_TMP, uv, (int32_t)offsetof(GCupval, closed));
+    } else {
+      emit_lso(as, A64I_LDRx, dest, uv, (int32_t)offsetof(GCupval, v));
+    }
+    emit_lso(as, A64I_LDRx, uv, func,
+	     (int32_t)offsetof(GCfuncL, uvptr) + 8*(int32_t)(ir->op2 >> 8));
+  }
 }
 
 static void asm_fref(ASMState *as, IRIns *ir)

@@ -1950,6 +1950,7 @@ static void build_subroutines(BuildCtx *ctx)
   |    movz TISNUM, #(LJ_TISNUM>>1)&0xffff, lsl #48
   |    movz TISNUMhi, #(LJ_TISNUM>>1)&0xffff, lsl #16
   |    movn TISNIL, #0
+  |  and LFUNC:CARG2, CARG2, #LJ_GCVMASK
   |   str RC, SAVE_MULTRES
   |   mov CARG3, #0
   |   str BASE, L->base
@@ -1986,6 +1987,7 @@ static void build_subroutines(BuildCtx *ctx)
   |  decode_RA CARG1, CARG3
   |  sub CARG2, BASE, CARG1
   |  ldr LFUNC:CARG3, [CARG2, #-16]
+  |  and LFUNC:CARG3, CARG3, #LJ_GCVMASK
   |  ldr CARG3, LFUNC:CARG3->field_pc
   |  ldr KBASE, [CARG3, #PC2PROTO(k)]
   |  b <2
