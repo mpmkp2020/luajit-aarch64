@@ -2,7 +2,7 @@
 LUAJIT?=luajit
 LUA_FLAGS?=-jdump=+rsXa
 # Define tests which should be skipped for some reasons.
-SKIPPED_LUA_TEST=fpm_cos
+SKIPPED_LUA_TEST=fpm_cos addov
 # mul and div on x86 fail due to issue with XCFLAGS="-DLUAJIT_ENABLE_GC64"
 SKIPPED_LUA_TEST_x86_64=mul div
 SKIPPED_LUA_TEST_i686=mul div
@@ -12,7 +12,8 @@ SKIPPED_LUA_TEST_aarch64=div callxs \
   vload xstore_addvalue fstore xload \
   abs atan2 ldexp max min mod pow \
   eq_other ge_none_num gt_none_num \
-  fpm_ceil fpm_exp fpm_floor fpm_log fpm_log10 fpm_sin fpm_sqrt fpm_tan fpm_trunc
+  fpm_ceil fpm_exp fpm_floor fpm_log fpm_log10 fpm_sin fpm_sqrt fpm_tan fpm_trunc \
+  fpm_exp2 fpm_log2
 
 # Find all tests inside the folder.
 LUA_TEST_SRC=$(wildcard *.lua)
