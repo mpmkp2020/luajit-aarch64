@@ -1024,7 +1024,7 @@ static void asm_add(ASMState *as, IRIns *ir)
       asm_fparith(as, ir, A64I_FADDd);
     return;
   }
-  asm_intop_s(as, ir, A64I_ADDw); /* !!!TODO this drops the tag, is it wrong? */
+  asm_intop_s(as, ir, irt_is64(ir->t) ? A64I_ADDx : A64I_ADDw);
 }
 
 static void asm_sub(ASMState *as, IRIns *ir)
@@ -1033,7 +1033,7 @@ static void asm_sub(ASMState *as, IRIns *ir)
     asm_fparith(as, ir, A64I_FSUBd);
     return;
   }
-  asm_intop_s(as, ir, A64I_SUBw); /* !!!TODO this drops the tag, is it wrong? */
+  asm_intop_s(as, ir, irt_is64(ir->t) ? A64I_SUBx : A64I_SUBw);
 }
 
 static void asm_mul(ASMState *as, IRIns *ir)
