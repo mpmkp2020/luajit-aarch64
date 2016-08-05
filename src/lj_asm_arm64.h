@@ -1532,8 +1532,22 @@ static void asm_head_root_base(ASMState *as)
 /* Coalesce BASE register for a side trace. */
 static RegSet asm_head_side_base(ASMState *as, IRIns *irp, RegSet allow)
 {
-    lua_unimpl();
-    return 0;
+  IRIns *ir;
+  asm_head_lreg(as);
+  ir = IR(REF_BASE);
+  if (ra_hasreg(ir->r) && (rset_test(as->modset, ir->r) || irt_ismarked(ir->t)))
+    ra_spill(as, ir);
+  if (ra_hasspill(irp->s)) {
+    rset_clear(allow, ra_dest(as, ir, allow));
+  } else {
+    Reg r = irp->r;
+    lua_assert(ra_hasreg(r));
+    rset_clear(allow, r);
+    if (r != ir->r && !rset_test(as->freeset, r))
+      ra_restore(as, regcost_ref(as->cost[r]));
+    ra_destreg(as, ir, r);
+  }
+  return allow;
 }
 
 /* -- Tail of trace ------------------------------------------------------- */
@@ -1602,6 +1616,23 @@ static void asm_setup_target(ASMState *as)
 /* Patch exit jumps of existing machine code to a new target. */
 void lj_asm_patchexit(jit_State *J, GCtrace *T, ExitNo exitno, MCode *target)
 {
-    lua_unimpl();
+  MCode *p = T->mcode;
+  MCode *pe = (MCode *)((char *)p + T->szmcode);
+  MCode *cstart = NULL, *cend = p;
+  MCode *mcarea = lj_mcode_patch(J, p, 0);
+  MCode *px = exitstub_addr(J, exitno);
+  for (; p < pe; p++) {
+    /* Look for bl exitstub, replace with b target. */
+    uint32_t ins = *p;
+    if ((ins & 0xfc000000u) == 0x94000000u &&
+	((ins ^ (px-p)) & 0x03ffffffu) == 0) {
+      *p = (ins & 0x7c000000u) | ((target-p) & 0x03ffffffu);
+      cend = p+1;
+      if (!cstart) cstart = p;
+    }
+  }
+  lua_assert(cstart != NULL);
+  lj_mcode_sync(cstart, cend);
+  lj_mcode_patch(J, mcarea, 1);
 }
 
