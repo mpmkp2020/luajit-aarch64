@@ -167,6 +167,8 @@ static void emit_loadu64(ASMState *as, Reg rd, uint64_t u64)
   *--as->mcp = A64I_MOVZw | A64F_D(rd) | A64F_U16(u64 & 0xffff);
 }
 
+#define emit_loada(as, r, addr)   emit_loadu64(as, (r), (uintptr_t)(addr))
+
 /* Generic load of register with base and (small) offset address. */
 static void emit_loadofs(ASMState *as, IRIns *ir, Reg r, Reg base, int32_t ofs)
 {
