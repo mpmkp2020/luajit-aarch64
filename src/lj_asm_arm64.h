@@ -1582,7 +1582,19 @@ static RegSet asm_head_side_base(ASMState *as, IRIns *irp, RegSet allow)
 /* Fixup the tail code. */
 static void asm_tail_fixup(ASMState *as, TraceNo lnk)
 {
-    lua_unimpl();
+  MCode *p = as->mctop;
+  MCode *target;
+  int32_t spadj = as->T->spadjust;
+  if (spadj == 0) {
+    as->mctop = --p;
+  } else {
+    /* Patch stack adjustment. */
+    uint32_t k = emit_isk12(A64I_ADDx, spadj);
+    p[-2] = (A64I_ADDx^A64I_BINOPk^k) | A64F_D(RID_SP) | A64F_N(RID_SP);
+  }
+  /* Patch exit branch. */
+  target = lnk ? traceref(as->J, lnk)->mcode : (MCode *)lj_vm_exit_interp;
+  p[-1] = A64I_B|(((target-p)+1)&0x03ffffffu);
 }
 
 /* Prepare tail of code. */
