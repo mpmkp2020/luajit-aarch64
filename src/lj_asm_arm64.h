@@ -743,7 +743,20 @@ static void asm_fload(ASMState *as, IRIns *ir)
 
 static void asm_fstore(ASMState *as, IRIns *ir)
 {
-    lua_unimpl();
+  if (ir->r != RID_SINK) {
+    Reg idx, src = ra_alloc1(as, ir->op2, RSET_GPR);
+    A64Ins ai = asm_fxstoreins(ir);
+    int32_t ofs;
+    IRIns *irf = IR(ir->op1);
+    if (irf->op1 == REF_NIL) {
+      idx = RID_GL;
+      ofs = irf->op2 - GG_OFS(g);
+    } else {
+      idx = ra_alloc1(as, irf->op1, rset_exclude(RSET_GPR, src));
+      ofs = field_ofs[irf->op2];
+    }
+    emit_lso(as, ai, src, idx, ofs);
+  }
 }
 
 static void asm_xload(ASMState *as, IRIns *ir)
