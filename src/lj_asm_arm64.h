@@ -1252,6 +1252,7 @@ static void asm_fpcomp(ASMState *as, IRIns *ir)
 static void asm_intcomp(ASMState *as, IRIns *ir)
 {
   A64CC cc = (asm_compmap[ir->o] & 15);
+  A64Ins ai = irt_is64(ir->t) ? A64I_CMPx : A64I_CMPw;
   IRRef lref = ir->op1, rref = ir->op2;
   Reg left;
   uint32_t m;
@@ -1264,9 +1265,9 @@ static void asm_intcomp(ASMState *as, IRIns *ir)
 
   left = ra_alloc1(as, lref, RSET_GPR);
 
-  m = asm_fuseopm(as, A64I_CMPx, rref, rset_exclude(RSET_GPR, left));
+  m = asm_fuseopm(as, ai, rref, rset_exclude(RSET_GPR, left));
   asm_guardcc(as, cc);
-  emit_n(as, A64I_CMPx^m, left);
+  emit_n(as, ai^m, left);
 
   /* !!!TODO we should do this so that the compare can be elided by
      making the instruction before flagsetting */
