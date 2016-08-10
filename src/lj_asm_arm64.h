@@ -401,7 +401,21 @@ static void asm_callx(ASMState *as, IRIns *ir)
 /* Return to lower frame. Guard that it goes to the right spot. */
 static void asm_retf(ASMState *as, IRIns *ir)
 {
-    lua_unimpl();
+  Reg base = ra_alloc1(as, REF_BASE, RSET_GPR);
+  Reg rpc = ra_scratch(as, rset_exclude(RSET_GPR, base));
+  void *pc = ir_kptr(IR(ir->op2));
+  int32_t delta = 1+LJ_FR2+bc_a(*((const BCIns *)pc - 1));
+  as->topslot -= (BCReg)delta;
+  if ((int32_t)as->topslot < 0) as->topslot = 0;
+  irt_setmark(IR(REF_BASE)->t);  /* Children must not coalesce with BASE reg. */
+  /* Need to force a spill on REF_BASE now to update the stack slot. */
+  emit_lso(as, A64I_STRx, base, RID_SP, ra_spill(as, IR(REF_BASE)));
+  emit_setgl(as, base, jit_base);
+  emit_addptr(as, base, -8*delta);
+  asm_guardcc(as, CC_NE);
+  emit_nm(as, A64I_CMPx, RID_TMP, rpc);
+  emit_loadu64(as, rpc, u64ptr(pc));
+  emit_lso(as, A64I_LDRx, RID_TMP, base, -8);
 }
 
 /* -- Type conversions ---------------------------------------------------- */
