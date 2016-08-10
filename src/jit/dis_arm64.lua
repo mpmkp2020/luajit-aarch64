@@ -385,11 +385,19 @@ local map_lsriro = {
       shift = 26, mask = 1,
       [0] = {
         shift = 30, mask = 3,
-        [2] = {
+        [0] = {
+          shift = 22, mask = 3,
+          [0] = "sturbDwK", "ldurbDwK"
+        },
+        {
+          shift = 22, mask = 3,
+          [0] = "sturhDwK", "ldurhDwK"
+        },
+        {
           shift = 22, mask = 3,
           [0] = "sturDwK", "ldurDwK"
         },
-        [3] = {
+        {
           shift = 22, mask = 3,
           [0] = "sturDxK", "ldurDxK"
         }
