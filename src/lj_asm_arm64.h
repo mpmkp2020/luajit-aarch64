@@ -1216,7 +1216,8 @@ static void asm_bitop(ASMState *as, IRIns *ir, A64Ins ai)
   }
 }
 
-#define asm_bnot(as, ir)	asm_bitop(as, ir, A64I_MVNw)
+#define asm_bnot(as, ir) \
+  asm_bitop(as, ir, irt_is64(ir->t) ? A64I_MVNx : A64I_MVNw)
 
 static void asm_bswap(ASMState *as, IRIns *ir)
 {
@@ -1225,9 +1226,12 @@ static void asm_bswap(ASMState *as, IRIns *ir)
   emit_dn(as, irt_is64(ir->t) ? A64I_REVx : A64I_REVw, dest, left);
 }
 
-#define asm_band(as, ir)	asm_bitop(as, ir, A64I_ANDw)
-#define asm_bor(as, ir)		asm_bitop(as, ir, A64I_ORRw)
-#define asm_bxor(as, ir)	asm_bitop(as, ir, A64I_EORw)
+#define asm_band(as, ir) \
+  asm_bitop(as, ir, irt_is64(ir->t) ? A64I_ANDx : A64I_ANDw)
+#define asm_bor(as, ir) \
+  asm_bitop(as, ir, irt_is64(ir->t) ? A64I_ORRx : A64I_ORRw)
+#define asm_bxor(as, ir) \
+  asm_bitop(as, ir, irt_is64(ir->t) ? A64I_EORx : A64I_EORw)
 
 static void asm_bitshift(ASMState *as, IRIns *ir, A64Ins ai, A64Shift sh)
  {
@@ -1236,46 +1240,42 @@ static void asm_bitshift(ASMState *as, IRIns *ir, A64Ins ai, A64Shift sh)
     Reg left = ra_alloc1(as, ir->op1, RSET_GPR);
     int32_t shift = (IR(ir->op2)->i & (irt_is64(ir->t) ? 63 : 31));
     lua_assert(shift>=0 && shift<(irt_is64(ir->t) ? 64 : 32));
-    uint32_t var64 = 0x804;
     int32_t immr, imms;
 
     switch(sh) {
     case A64SH_LSL:
       imms = irt_is64(ir->t) ? 63-shift : 31-shift;
       immr = imms+1;
-      if(!irt_is64(ir->t)) {
-        emit_dn(as, ai|(imms<<10)|(immr<<16), dest, left);
-      } else {
-        emit_dn(as, ai|var64|(imms<<10)|(immr<<16), dest, left);
-      }
+      emit_dn(as, ai|(imms<<10)|(immr<<16), dest, left);
       break;
     case A64SH_LSR: case A64SH_ASR:
       if(!irt_is64(ir->t)) {
         emit_dn(as, ai|(31<<10)|(shift<<16), dest, left);
       } else {
-        emit_dn(as, ai|var64|(63<<10)|(shift<<16), dest, left);
+        emit_dn(as, ai|(63<<10)|(shift<<16), dest, left);
       }
       break;
     case A64SH_ROR:
-      if(!irt_is64(ir->t)) {
-        emit_dnm(as, ai|(shift<<10), dest, left, left);
-      } else {
-        emit_dnm(as, ai|var64|(shift<<10), dest, left, left);
-      }
+      emit_dnm(as, ai|(shift<<10), dest, left, left);
       break;
     }
   } else {
+    A64Ins ai = irt_is64(ir->t) ? A64I_SHRx : A64I_SHRw;
     Reg dest = ra_dest(as, ir, RSET_GPR);
     Reg left = ra_alloc1(as, ir->op1, RSET_GPR);
     Reg right = ra_alloc1(as, ir->op2, rset_exclude(RSET_GPR, left));
-    emit_dnm(as, A64I_SHRw|A64F_BSH(sh), dest, left, right);
+    emit_dnm(as, ai|A64F_BSH(sh), dest, left, right);
   }
  }
 
-#define asm_bshl(as, ir)       asm_bitshift(as, ir, A64I_UBFMw, A64SH_LSL)
-#define asm_bshr(as, ir)       asm_bitshift(as, ir, A64I_UBFMw, A64SH_LSR)
-#define asm_bsar(as, ir)       asm_bitshift(as, ir, A64I_SBFMw, A64SH_ASR)
-#define asm_bror(as, ir)       asm_bitshift(as, ir, A64I_EXTRw, A64SH_ROR)
+#define asm_bshl(as, ir) \
+  asm_bitshift(as, ir, irt_is64(ir->t) ? A64I_UBFMx : A64I_UBFMw, A64SH_LSL)
+#define asm_bshr(as, ir) \
+  asm_bitshift(as, ir, irt_is64(ir->t) ? A64I_UBFMx : A64I_UBFMw, A64SH_LSR)
+#define asm_bsar(as, ir) \
+  asm_bitshift(as, ir, irt_is64(ir->t) ? A64I_SBFMx : A64I_SBFMw, A64SH_ASR)
+#define asm_bror(as, ir) \
+  asm_bitshift(as, ir, irt_is64(ir->t) ? A64I_EXTRx : A64I_EXTRw, A64SH_ROR)
 #define asm_brol(as, ir)       lua_assert(0)
 
 static void asm_intmin_max(ASMState *as, IRIns *ir, A64CC cc)
