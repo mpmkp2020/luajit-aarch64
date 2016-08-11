@@ -989,7 +989,34 @@ static void asm_tbar(ASMState *as, IRIns *ir)
 
 static void asm_obar(ASMState *as, IRIns *ir)
 {
-    lua_unimpl();
+  const CCallInfo *ci = &lj_ir_callinfo[IRCALL_lj_gc_barrieruv];
+  IRRef args[2];
+  MCLabel l_end;
+  RegSet allow = RSET_GPR;
+  Reg obj, val, tmp, black, white;
+  /* No need for other object barriers (yet). */
+  lua_assert(IR(ir->op1)->o == IR_UREFC);
+  ra_evictset(as, RSET_SCRATCH);
+  l_end = emit_label(as);
+  args[0] = ASMREF_TMP1;  /* global_State *g */
+  args[1] = ir->op1;      /* TValue *tv      */
+  asm_gencall(as, ci, args);
+  emit_loada(as, ra_releasetmp(as, ASMREF_TMP1), J2G(as->J));
+  obj = IR(ir->op1)->r;
+  tmp = ra_scratch(as, rset_exclude(allow, obj));
+  black = ra_scratch(as, rset_exclude(allow, tmp));
+  white = ra_scratch(as, rset_exclude(allow, black));
+  emit_cond_branch(as, CC_EQ, l_end);
+  lua_todo(); /* TODO: use emit_isk13 */
+  emit_nm(as, A64I_TSTw, black, tmp);
+  emit_cond_branch(as, CC_EQ, l_end);
+  emit_nm(as, A64I_TSTw, white, RID_TMP);
+  val = ra_alloc1(as, ir->op2, rset_exclude(RSET_GPR, obj));
+  emit_loadi(as, white, LJ_GC_WHITES);
+  emit_loadi(as, black, LJ_GC_BLACK);
+  emit_lso(as, A64I_LDRBw, tmp, obj,
+     (int32_t)offsetof(GCupval, marked)-(int32_t)offsetof(GCupval, tv));
+  emit_lso(as, A64I_LDRBw, RID_TMP, val, (int32_t)offsetof(GChead, marked));
 }
 
 /* -- Arithmetic and logic operations ------------------------------------- */

@@ -170,8 +170,8 @@ typedef enum A64Ins {
   A64I_NOP = 0xd503201f,
   A64I_ADDw = 0x0b000000,
   A64I_ADDx = 0x8b000000,
-  A64I_ADDSw = 0x0b000000 | A64I_S,
-  A64I_ADDSx = 0x8b000000 | A64I_S,
+  A64I_ADDSw = A64I_ADDw | A64I_S,
+  A64I_ADDSx = A64I_ADDx | A64I_S,
   A64I_B = 0x14000000,
   A64I_Bcond = 0x54000000,
   A64I_BL = 0x94000000,
@@ -179,6 +179,8 @@ typedef enum A64Ins {
   A64I_BLR = 0xd63f0000,
   A64I_ANDw = 0x0a000000,
   A64I_ANDx = 0x8a000000,
+  A64I_ANDSw = 0x6a000000,
+  A64I_ANDSx = 0xea000000,
   A64I_ORRw = 0x2a000000, /* orr w0,w0,w0 */
   A64I_ORRx = 0xaa000000, /* orr x0,x0,x0 */
   A64I_EORw = 0x4a000000,
@@ -274,6 +276,8 @@ typedef enum A64Ins {
   A64I_CMNw = A64I_ADDSw | A64F_D (RID_ZERO),
   A64I_NEGw = A64I_SUBw | A64F_N (RID_ZERO),
   A64I_NEGx = A64I_SUBx | A64F_N (RID_ZERO),
+  A64I_TSTw  = A64I_ANDSw | 0x1f,  /* tst wn, wm {,#shift}*/
+  A64I_TSTx  = A64I_ANDSx | 0x1f,  /* tst xn, xm {,#shift}*/
 
   /* fields */
   A64I_BINOPk = 0x1a000000, /* A64I_ADDx^A64I_BINOPk => ADD x0,x0,0 */
