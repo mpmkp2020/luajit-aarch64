@@ -331,7 +331,6 @@ static void asm_gencall(ASMState *as, const CCallInfo *ci, IRRef *args)
   for (n = 0; n < nargs; n++) { /* Setup args. */
     IRRef ref = args[n];
     IRIns *ir = IR(ref);
-    // TODO: check the case (ci->flags & CCI_VARARG)
     if (ref) {
       if (irt_isfp(ir->t)) {
         if (fpr <= REGARG_LASTFPR) {
@@ -378,7 +377,23 @@ static void asm_setupresult(ASMState *as, IRIns *ir, const CCallInfo *ci)
 
 static void asm_callx(ASMState *as, IRIns *ir)
 {
-    lua_unimpl();
+  IRRef args[CCI_NARGS_MAX*2];
+  CCallInfo ci;
+  IRRef func;
+  IRIns *irf;
+  ci.flags = asm_callx_flags(as, ir);
+  asm_collectargs(as, ir, &ci, args);
+  asm_setupresult(as, ir, &ci);
+  func = ir->op2; irf = IR(func);
+  if (irf->o == IR_CARG) { func = irf->op1; irf = IR(func); }
+  if (irref_isk(func)) {  /* Call to constant address. */
+    ci.func = (ASMFunction)(ir_k64(irf)->u64);
+  } else {
+    /* Use LR for indirect calls. */
+    emit_n(as, A64I_BLR, RID_LR);
+    ci.func = (ASMFunction)(void *)0;
+  }
+  asm_gencall(as, &ci, args);
 }
 
 /* -- Returns ------------------------------------------------------------- */

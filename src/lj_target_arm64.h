@@ -176,6 +176,7 @@ typedef enum A64Ins {
   A64I_Bcond = 0x54000000,
   A64I_BL = 0x94000000,
   A64I_BR = 0xd61f0000,
+  A64I_BLR = 0xd63f0000,
   A64I_ANDw = 0x0a000000,
   A64I_ANDx = 0x8a000000,
   A64I_ORRw = 0x2a000000, /* orr w0,w0,w0 */

@@ -7,7 +7,7 @@ SKIPPED_LUA_TEST=fpm_cos addov
 SKIPPED_LUA_TEST_x86_64=mul div
 SKIPPED_LUA_TEST_i686=mul div
 # Below features have not been implemented on aarch64.
-SKIPPED_LUA_TEST_aarch64=div callxs \
+SKIPPED_LUA_TEST_aarch64=div call_vararg \
   snew cnew cnewi \
   vload xstore_addvalue fstore xload \
   abs atan2 ldexp max min mod pow \
