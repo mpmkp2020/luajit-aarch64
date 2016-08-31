@@ -646,7 +646,6 @@ static void asm_hrefk(ASMState *as, IRIns *ir)
 
   uint64_t key_val = 0;
   if (irt_ispri(irkey->t)) {
-    lua_unimpl();
     lua_assert(!irt_isnil(irkey->t));
     key_val = (uint64_t)irt_toitype(irkey->t) << 47;
   } else if (irt_isnum(irkey->t))  {
